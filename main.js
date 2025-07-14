@@ -1015,7 +1015,9 @@
        * 打开设置面板
        */
       openPanl: async function () {
-        let is_open = await this.checkToken();
+        // let is_open = await this.checkToken();
+        let is_open = true;
+
         if (is_open) {
           this.settingDrawer = true;
         }
@@ -2240,7 +2242,8 @@
        * @param {*} state
        */
       handleClick: async function (state) {
-        let succ = await this.checkToken();
+        // let succ = await this.checkToken();
+        let succ = true;
         if (!succ) {
           this.settingDrawer = false;
           return;
