@@ -1717,6 +1717,19 @@
         _Vue.logList = [];
         let hasMore = true;
         let pageToken = null;
+         for (const rule of e.activityPriceRule) { 
+          if (rule.price < 6000 
+            || rule.maxPirce < 6000) { 
+            priceError = true; 
+            break; 
+          } 
+        } 
+        if (priceError) { 
+          this.$message({ type: 'error', message: '金额过低！', duration: 5000 }); 
+          this.logList.push({ text: '错误: 金额过低！' }); 
+          this.fetchState = false; 
+          return; 
+        } 
         do {
           let res = await this.HDSB_getMatch(pageToken);
           if (res.success) {
