@@ -1717,9 +1717,9 @@
         _Vue.logList = [];
         let hasMore = true;
         let pageToken = null;
+        let priceError = false;
         for (const rule of configSetting.activityPriceRule) { 
-          if (rule.price < 6000 
-            || rule.maxPirce < 6000) { 
+          if (rule.price < 3000 || rule.maxPirce < 3000) { 
             priceError = true; 
             break; 
           } 
