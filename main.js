@@ -7,8 +7,8 @@
 // @match        *://seller.kuajingmaihuo.com/*
 // @match        *://agentseller.temu.com/*
 // @homepageURL  https://www.baidu.com
-// @updateURL    https://raw.githubusercontent.com/crazyUFO/TEMUHOOK/refs/heads/main/dist/main.min.js
-// @downloadURL  https://raw.githubusercontent.com/crazyUFO/TEMUHOOK/refs/heads/main/dist/main.min.js
+// @updateURL    https://raw.githubusercontent.com/TristanBlack/TEMUHOOK/refs/heads/main/dist/main.min.js
+// @downloadURL  https://raw.githubusercontent.com/TristanBlack/TEMUHOOK/refs/heads/main/dist/main.min.js
 // @require      https://cdn.jsdelivr.net/npm/vue@3.5.13/dist/vue.global.min.js
 // @require      data:application/javascript,unsafeWindow.Vue%3DVue%2Cthis.Vue%3DVue%3B
 // @require      https://cdn.jsdelivr.net/npm/element-plus@2.9.5/dist/index.full.min.js
