@@ -123,12 +123,12 @@
                             <el-table :data="configSetting.activityPriceRule" style="width: 100%">
                                 <el-table-column label="价格(分)">
                                     <template #default="scope">
-                                        <el-input-number v-model="scope.row.price" :min="0" :precision="0" :disabled="fetchState" controls-position="right" />
+                                        <el-input-number v-model="scope.row.price" :min="3500" :precision="0" :disabled="fetchState" controls-position="right" />
                                     </template>
                                 </el-table-column>
                                 <el-table-column label="最高价格(分)">
                                     <template #default="scope">
-                                        <el-input-number v-model="scope.row.maxPirce" :min="0" :precision="0" :disabled="fetchState" controls-position="right" />
+                                        <el-input-number v-model="scope.row.maxPirce" :min="3500" :precision="0" :disabled="fetchState" controls-position="right" />
                                     </template>
                                 </el-table-column>
                                 <el-table-column label="" width="100">
@@ -142,6 +142,16 @@
                             <div style="margin-top: 30px;">
                                 <el-button type="info" @click="HDSB_activityPirceAdd" :disabled="configSetting.activityPriceRule.length > 0">添加金额规则</el-button>
                             </div>
+                        <el-divider>活动申报类目</el-divider>
+                            <el-form-item label="选择类目" required>
+                                <el-radio-group v-model="configSetting.activityCategory">
+                                    <el-radio label="A">A：标码T恤</el-radio>
+                                    <el-radio label="B">B：大码T恤</el-radio>
+                                    <el-radio label="AW">AW：标码带帽卫衣</el-radio>
+                                    <el-radio label="BW">BW：大码带帽卫衣</el-radio>
+                                    <el-radio label="ALL">全部</el-radio>
+                                </el-radio-group>
+                            </el-form-item>
                         <el-divider>过滤字符</el-divider>
                             <el-table :data="configSetting.activityFilerStrRule" style="width: 100%">
                                 <el-table-column label="SKU属性集">
@@ -188,7 +198,7 @@
                   <el-tag size="small" v-if="configSetting.checkedSites" >{{siteLabel(configSetting.checkedSites) }}</el-tag>
                 </div>
                 <div style="margin-top: 30px;" v-if="malInfoList.length">
-                <el-divider  content-position="left">选择店铺</el-divider> 
+                <el-divider  content-position="left">选择店铺</el-divider>
                 <el-radio-group v-model="configSetting.mallId">
                         <el-radio v-for="item in malInfoList" :key="item.mallId" :value="item.mallId" :disabled="fetchState">{{item.mallName}}</el-radio>
                     </el-radio-group>
@@ -978,6 +988,7 @@
             activityPriceRule: [],
             activityFilerStrRule: [],
             activityTargetActivityStock: [],
+            activityCategory: "",
             token: null,
             checkedSites: null,
           },
@@ -1357,8 +1368,8 @@
        */
       SMZQ_abandonPriceRuleAdd: function () {
         this.configSetting.abandonPriceRule.push({
-          price: 0,
-          maxPrice: 0,
+          price: 4000,
+          maxPrice: 4000,
         });
       },
 
@@ -1490,7 +1501,7 @@
        * @param {*} dataList
        * @returns
        */
-      SMZQ_combineData: function (dataList) {},
+      SMZQ_combineData: function (dataList) { },
       /**
        * 新生命周期-批量的讨价还价
        * @param {*} postData
@@ -1524,12 +1535,95 @@
         const filerSkustr = configSetting.activityFilerStrRule;
         const targetActivityStock = configSetting.activityTargetActivityStock;
         const siteId = configSetting.checkedSites;
+        const activityCategory = configSetting.activityCategory;
         console.log(targetActivityStock);
         const _Vue = this;
         _Vue.fetchState = true;
         _Vue.logList = [];
         let matchList = data;
         let productList = [];
+
+        // 根据活动申报类目过滤SKU
+        if (activityCategory) {
+          // 如果选择了"全部"选项，则不进行过滤
+          if (activityCategory === 'ALL') {
+            _Vue.logList.push({
+              text: `已选择全部类目，不进行SKU过滤`,
+            });
+
+          } else {
+            _Vue.logList.push({
+              text: `根据活动申报类目 ${activityCategory === 'A' ? 'A：标码T恤' : activityCategory === 'B' ? 'B：大码T恤' : activityCategory === 'AW' ? 'AW：标码带帽卫衣' : 'BW：大码带帽卫衣'} 过滤SKU...`,
+            });
+
+            let filteredList = [];
+            let skippedCount = 0;
+
+            for (let item of matchList) {
+              // 检查是否有符合条件的SKU
+
+              // const hasValidSku = item.activitySiteInfoList.some((site) =>
+              //   site.skcList.some((skc) =>
+              //     skc.skuList.some((sku) => {
+              //       // 输出SKU的属性和值
+              //       _Vue.logList.push({
+              //         text: `sku.extCode: ${sku.extCode}`,
+              //       });
+
+              //       // 检查extCode前缀是否符合选择的活动申报类目
+              //       if (activityCategory === 'ALL') {
+              //         return true;
+              //       }
+              //       // 使用正则表达式精确匹配前缀，确保A不会匹配到AW
+              //       const pattern = new RegExp(`^${activityCategory}[-_]?\d+`);
+              //       return sku.extCode && pattern.test(sku.extCode);
+              //     })
+              //   )
+              // );
+              // _Vue.logList.push({
+              //         text: `hasValidSku: ${hasValidSku}`,
+              //       });
+
+              // 保留符合条件的商品，但过滤掉不符合条件的SKU
+              const filteredItem = JSON.parse(JSON.stringify(item));
+
+              filteredItem.activitySiteInfoList = filteredItem.activitySiteInfoList.map(site => {
+                site.skcList = site.skcList.map(skc => {
+                  skc.skuList = skc.skuList.filter(sku => {
+                    if (activityCategory === 'ALL') {
+                      return true;
+                    }
+
+                    const pattern = new RegExp(`^${activityCategory}[-_]?\\d+`);
+                    const isValid = pattern.test(sku.extCode);
+                    if (!isValid) {
+                      _Vue.logList.push({
+                        text: `排除：SKU ${sku.skuId}的extCode${sku.extCode}不符合 ${activityCategory} 类目规则`,
+                      });
+                    }
+                    return isValid;
+                  });
+                  return skc;
+                }).filter(skc => skc.skuList.length > 0);
+                return site;
+              }).filter(site => site.skcList.length > 0);
+
+              if (filteredItem.activitySiteInfoList.length > 0) {
+                filteredList.push(filteredItem);
+              } else {
+                skippedCount++;
+              }
+
+            }
+
+            _Vue.logList.push({
+              text: `统计：共${matchList.length} 条数据, 通过extCode前缀过滤了 ${skippedCount} 条数据`,
+            });
+
+            matchList = filteredList;
+          }
+        }
+
         if (filerSkustr.length) {
           _Vue.logList.push({
             text: `排除掉所有SKU属性集包含的...`,
@@ -1578,9 +1672,8 @@
           });
           matchList = filer_data;
           _Vue.logList.push({
-            text: `站点:${this.siteLabel(siteId)}的数据,共 ${
-              matchList.length
-            } 条数据`,
+            text: `站点:${this.siteLabel(siteId)}的数据,共 ${matchList.length
+              } 条数据`,
           });
         }
         productList = matchList.map((value) => {
@@ -1595,7 +1688,7 @@
                 siteId: val.siteId,
                 skcList: val.skcList
                   .filter((v) => {
-                   return v.suggestActivityPrice >= price
+                    return v.suggestActivityPrice >= price
                   })
                   .map((v) => {
                     let activityPrice =
@@ -1718,18 +1811,27 @@
         let hasMore = true;
         let pageToken = null;
         let priceError = false;
-        for (const rule of configSetting.activityPriceRule) { 
-          if (rule.price < 3000 || rule.maxPirce < 3000) { 
-            priceError = true; 
-            break; 
-          } 
-        } 
-        if (priceError) { 
-          this.$message({ type: 'error', message: '金额过低！', duration: 5000 }); 
-          this.logList.push({ text: '错误: 金额过低！' }); 
-          this.fetchState = false; 
-          return; 
-        } 
+
+        // 检查是否选择了活动申报类目
+        if (!configSetting.activityCategory) {
+          this.$message({ type: 'error', message: '请选择活动申报类目', duration: 5000 });
+          this.logList.push({ text: '错误: 请选择活动申报类目' });
+          this.fetchState = false;
+          return;
+        }
+
+        for (const rule of configSetting.activityPriceRule) {
+          if (rule.price < 3000 || rule.maxPirce < 3000 || rule.price > rule.maxPirce) {
+            priceError = true;
+            break;
+          }
+        }
+        if (priceError) {
+          this.$message({ type: 'error', message: '金额设置错误！', duration: 5000 });
+          this.logList.push({ text: '错误: 金额设置错误！' });
+          this.fetchState = false;
+          return;
+        }
         do {
           let res = await this.HDSB_getMatch(pageToken);
           if (res.success) {
@@ -1781,7 +1883,27 @@
        * 批量申报价格
        */
       SMZQ_execute: async function () {
+
+        const _Vue = this;
+        _Vue.fetchState = true;
+        _Vue.logList = [];
+        let priceError = false;
+
         const configSetting = this.configSetting;
+
+        for (const rule of configSetting.abandonPriceRule) {
+          if (rule.price < 4000 || rule.maxPrice < 4000 || rule.price > rule.maxPrice) {
+            priceError = true;
+            break;
+          }
+        }
+        if (priceError) {
+          _Vue.logList.push({
+              text: `价格设置错误`,
+            });
+          this.fetchState = false;
+          return;
+        }
         const waitSeconds = this.waitSeconds;
         const getDataList = this.SMZQ_searchForChainSupplier;
         const rejectRemark = this.SMZQ_rejectRemark;
@@ -1791,9 +1913,6 @@
         const revisePrice = this.SMZQ_bargainNoBom;
         const siteId = this.configSetting.checkedSites;
 
-        const _Vue = this;
-        _Vue.fetchState = true;
-        _Vue.logList = [];
         _Vue.logInfo = {
           index: 0,
           totals: 3,
@@ -1896,9 +2015,8 @@
             let priceOrderIdsArr = this.sliceArrayInChunks(priceOrderIds, 700);
             for (let [key, value] of priceOrderIdsArr.entries()) {
               _Vue.logList.push({
-                text: `等待${configSetting.waitSeconds}秒请求第${
-                  key + 1
-                }片: 价格推荐信息=>700条一片`,
+                text: `等待${configSetting.waitSeconds}秒请求第${key + 1
+                  }片: 价格推荐信息=>700条一片`,
               });
 
               await waitSeconds(configSetting.waitSeconds);
@@ -1936,20 +2054,20 @@
               let supplierResult = AbandonPriceRule(val.suggestSupplyPrice);
               return supplierResult == 3
                 ? {
-                    priceOrderId: val.id,
-                    supplierResult: supplierResult, //使用这个进行对比 1 是使用推荐价格 2是自定义价格 3是放弃
-                    items: val.skuInfoList.map((item) => ({
-                      productSkuId: item.productSkuId,
-                    })),
-                  }
+                  priceOrderId: val.id,
+                  supplierResult: supplierResult, //使用这个进行对比 1 是使用推荐价格 2是自定义价格 3是放弃
+                  items: val.skuInfoList.map((item) => ({
+                    productSkuId: item.productSkuId,
+                  })),
+                }
                 : {
-                    priceOrderId: val.id,
-                    supplierResult: supplierResult, //使用这个进行对比 1 是使用推荐价格 2是自定义价格 3是放弃
-                    items: val.skuInfoList.map((item) => ({
-                      productSkuId: item.productSkuId,
-                      price: AbandonPriceSet(item.suggestSupplyPrice),
-                    })),
-                  };
+                  priceOrderId: val.id,
+                  supplierResult: supplierResult, //使用这个进行对比 1 是使用推荐价格 2是自定义价格 3是放弃
+                  items: val.skuInfoList.map((item) => ({
+                    productSkuId: item.productSkuId,
+                    price: AbandonPriceSet(item.suggestSupplyPrice),
+                  })),
+                };
             });
             _Vue.logList.push({
               text: `数据组合完毕: 共${itemRequests.length}条数据`,
@@ -1957,9 +2075,8 @@
             let postDatas = this.sliceArrayInChunks(itemRequests, 200);
             for (let [key, value] of postDatas.entries()) {
               _Vue.logList.push({
-                text: `等待${configSetting.waitSeconds}秒请求第${
-                  key + 1
-                }片: 数据提交=>200条一片`,
+                text: `等待${configSetting.waitSeconds}秒请求第${key + 1
+                  }片: 数据提交=>200条一片`,
               });
 
               await waitSeconds(configSetting.waitSeconds);
@@ -2143,9 +2260,8 @@
               for (let index = 0; index < postGroup.length; index++) {
                 const curPostData = postGroup[index];
                 _Vue.logList.push({
-                  text: `等待${configSetting.waitSeconds}秒请求: 第${
-                    index + 1
-                  }次签署,签署${curPostData.length}个`,
+                  text: `等待${configSetting.waitSeconds}秒请求: 第${index + 1
+                    }次签署,签署${curPostData.length}个`,
                 });
                 await waitSeconds(configSetting.waitSeconds);
                 await signJIT(curPostData)
@@ -2195,8 +2311,8 @@
        */
       HDSB_activityPirceAdd: function () {
         this.configSetting.activityPriceRule.push({
-          price: 0,
-          maxPirce: 0,
+          price: 4000,
+          maxPirce: 4000,
         });
       },
       /**
@@ -2312,3 +2428,4 @@
   app.use(ElementPlus);
   app.mount("#vueApp");
 })();
+
