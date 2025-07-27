@@ -144,13 +144,13 @@
                             </div>
                         <el-divider>活动申报类目</el-divider>
                             <el-form-item label="选择类目" required>
-                                <el-radio-group v-model="configSetting.activityCategory">
-                                    <el-radio label="A">A：标码T恤</el-radio>
-                                    <el-radio label="B">B：大码T恤</el-radio>
-                                    <el-radio label="AW">AW：标码带帽卫衣</el-radio>
-                                    <el-radio label="BW">BW：大码带帽卫衣</el-radio>
-                                    <el-radio label="ALL">全部</el-radio>
-                                </el-radio-group>
+                                <el-checkbox-group v-model="configSetting.activityCategories">
+                                    <el-checkbox label="A">A：标码T恤</el-checkbox>
+                                    <el-checkbox label="B">B：大码T恤</el-checkbox>
+                                    <el-checkbox label="AW">AW：标码带帽卫衣</el-checkbox>
+                                    <el-checkbox label="BW">BW：大码带帽卫衣</el-checkbox>
+                                    <el-checkbox label="ALL">全部</el-checkbox>
+                                </el-checkbox-group>
                             </el-form-item>
                         <el-divider>过滤字符</el-divider>
                             <el-table :data="configSetting.activityFilerStrRule" style="width: 100%">
@@ -1544,16 +1544,27 @@
         let productList = [];
 
         // 根据活动申报类目过滤SKU
-        if (activityCategory) {
+        const activityCategories = configSetting.activityCategories || [];
+        if (activityCategories.length > 0) {
           // 如果选择了"全部"选项，则不进行过滤
-          if (activityCategory === 'ALL') {
+          if (activityCategories.includes('ALL')) {
             _Vue.logList.push({
               text: `已选择全部类目，不进行SKU过滤`,
             });
 
           } else {
+            const categoryLabels = activityCategories.map(cat => {
+              switch(cat) {
+                case 'A': return 'A：标码T恤';
+                case 'B': return 'B：大码T恤';
+                case 'AW': return 'AW：标码带帽卫衣';
+                case 'BW': return 'BW：大码带帽卫衣';
+                default: return cat;
+              }
+            }).join('、');
+            
             _Vue.logList.push({
-              text: `根据活动申报类目 ${activityCategory === 'A' ? 'A：标码T恤' : activityCategory === 'B' ? 'B：大码T恤' : activityCategory === 'AW' ? 'AW：标码带帽卫衣' : 'BW：大码带帽卫衣'} 过滤SKU...`,
+              text: `根据活动申报类目 ${categoryLabels} 过滤SKU...`,
             });
 
             let filteredList = [];
@@ -1590,15 +1601,19 @@
               filteredItem.activitySiteInfoList = filteredItem.activitySiteInfoList.map(site => {
                 site.skcList = site.skcList.map(skc => {
                   skc.skuList = skc.skuList.filter(sku => {
-                    if (activityCategory === 'ALL') {
+                    if (activityCategories.includes('ALL')) {
                       return true;
                     }
 
-                    const pattern = new RegExp(`^${activityCategory}[-_]?\\d+`);
-                    const isValid = pattern.test(sku.extCode);
+                    // 检查是否匹配任一选中的类目
+                    const isValid = activityCategories.some(category => {
+                      const pattern = new RegExp(`^${category}[-_]?\\d+`);
+                      return pattern.test(sku.extCode);
+                    });
+                    
                     if (!isValid) {
                       _Vue.logList.push({
-                        text: `排除：SKU ${sku.skuId}的extCode${sku.extCode}不符合 ${activityCategory} 类目规则`,
+                        text: `排除：SKU ${sku.skuId}的extCode${sku.extCode}不符合选中的类目规则`,
                       });
                     }
                     return isValid;
@@ -1813,9 +1828,9 @@
         let priceError = false;
 
         // 检查是否选择了活动申报类目
-        if (!configSetting.activityCategory) {
-          this.$message({ type: 'error', message: '请选择活动申报类目', duration: 5000 });
-          this.logList.push({ text: '错误: 请选择活动申报类目' });
+        if (!configSetting.activityCategories || configSetting.activityCategories.length === 0) {
+          this.$message({ type: 'error', message: '请至少选择一个活动申报类目', duration: 5000 });
+          this.logList.push({ text: '错误: 请至少选择一个活动申报类目' });
           this.fetchState = false;
           return;
         }
