@@ -1421,7 +1421,7 @@
         const configSetting = this.configSetting;
         // 定义请求的URL
         const url =
-          "https://seller.kuajingmaihuo.com/marvel-mms/cn/api/kiana/xmen/select/searchForSemiSupplier";
+          "https://agentseller.temu.com/api/kiana/mms/robin/searchForSemiSupplier";
 
         pageSize =
           typeof pageSize == "undefined" ? configSetting.pageSize : pageSize;
