@@ -1454,7 +1454,7 @@
         const configSetting = this.configSetting;
         // 定义请求的URL
         const url =
-          "https://seller.kuajingmaihuo.com/marvel-mms/cn/api/kiana/magnus/price/bargain-no-bom/batch/info/query";
+          "https://agentseller.temu.com/api/kiana/magnus/mms/price/bargain-no-bom/batch/info/query";
         // 定义要发送的数据
         const data = {
           orderIds: orderIds,
@@ -1511,7 +1511,7 @@
         const configSetting = this.configSetting;
         // 定义请求的URL
         const url =
-          "https://seller.kuajingmaihuo.com/marvel-mms/cn/api/kiana/magnus/price/bargain-no-bom/batch";
+          "https://agentseller.temu.com/api/kiana/magnus/mms/price/bargain-no-bom/batch";
 
         // 使用fetch API发起POST请求
         return fetch(url, {
