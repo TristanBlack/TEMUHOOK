@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         TEMUHOOK
 // @namespace    SAN
-// @version      2.8
+// @version      2.9
 // @description  TEMUHOOK 提交
 // @author       XIAOSAN
 // @match        *://seller.kuajingmaihuo.com/*
@@ -116,6 +116,17 @@
                             <div style="margin-top: 30px;">
                                 <el-button type="info" @click="SMZQ_abandonPriceRuleAdd" :disabled="configSetting.abandonPriceRule.length > 0">添加金额规则</el-button>
                             </div>
+                            <el-divider>核价申报类目</el-divider>
+                            <el-form-item label="选择类目" required>
+                                <el-checkbox-group v-model="configSetting.abandonCategories" @change="handleAbandonCategoriesChange">
+                                    <el-checkbox label="A">A：常规T恤</el-checkbox>
+                                    <el-checkbox label="B">B：大码T恤</el-checkbox>
+                                    <el-checkbox label="C">C：常规卫衣</el-checkbox>
+                                    <el-checkbox label="D">D：大码卫衣</el-checkbox>
+                                    
+                                    <el-checkbox label="ALL">全部</el-checkbox>
+                                </el-checkbox-group>
+                            </el-form-item>
                         </el-form>
                     </el-tab-pane>
                     <el-tab-pane label="活动申报" name="HDSB">
@@ -145,10 +156,11 @@
                         <el-divider>活动申报类目</el-divider>
                             <el-form-item label="选择类目" required>
                                 <el-checkbox-group v-model="configSetting.activityCategories">
-                                    <el-checkbox label="A">A：标码T恤</el-checkbox>
+                                    <el-checkbox label="A">A：常规T恤</el-checkbox>
                                     <el-checkbox label="B">B：大码T恤</el-checkbox>
-                                    <el-checkbox label="AW">AW：标码带帽卫衣</el-checkbox>
-                                    <el-checkbox label="BW">BW：大码带帽卫衣</el-checkbox>
+                                    <el-checkbox label="C">C：常规卫衣</el-checkbox>
+                                    <el-checkbox label="D">D：大码卫衣</el-checkbox>
+                                    
                                     <el-checkbox label="ALL">全部</el-checkbox>
                                 </el-checkbox-group>
                             </el-form-item>
@@ -989,6 +1001,7 @@
             activityFilerStrRule: [],
             activityTargetActivityStock: [],
             activityCategory: "",
+            abandonCategories: [],
             token: null,
             checkedSites: null,
           },
@@ -1129,6 +1142,19 @@
           });
         });
       },
+      /**
+       * 处理核价申报类目选择变化
+       * @param {Array} value 选中的类目数组
+       */
+      handleAbandonCategoriesChange(value) {
+        const allIndex = value.indexOf('ALL');
+        if (allIndex > -1) {
+          this.configSetting.abandonCategories = ['A', 'B', 'C', 'D', 'ALL'];
+        } else {
+          this.configSetting.abandonCategories = value.filter(item => item !== 'ALL');
+        }
+      },
+
       /**
        * 获取商品
        * @param {*}pageToken 下一页token
@@ -1555,10 +1581,10 @@
           } else {
             const categoryLabels = activityCategories.map(cat => {
               switch(cat) {
-                case 'A': return 'A：标码T恤';
+                case 'A': return 'A：常规T恤';
                 case 'B': return 'B：大码T恤';
-                case 'AW': return 'AW：标码带帽卫衣';
-                case 'BW': return 'BW：大码带帽卫衣';
+                case 'C': return 'C：常规卫衣';
+                case 'D': return 'D：大码卫衣';
                 default: return cat;
               }
             }).join('、');
@@ -1607,7 +1633,7 @@
 
                     // 检查是否匹配任一选中的类目
                     const isValid = activityCategories.some(category => {
-                      const pattern = new RegExp(`^${category}[-_]?\\d+`);
+                      const pattern = new RegExp(`^${category}.*`);
                       return pattern.test(sku.extCode);
                     });
                     
@@ -1906,6 +1932,14 @@
 
         const configSetting = this.configSetting;
 
+        // 检查是否选择了核价申报类目
+        if (!configSetting.abandonCategories || configSetting.abandonCategories.length === 0) {
+          this.$message({ type: 'error', message: '请至少选择一个核价申报类目', duration: 5000 });
+          this.logList.push({ text: '错误: 请至少选择一个核价申报类目' });
+          this.fetchState = false;
+          return;
+        }
+
         for (const rule of configSetting.abandonPriceRule) {
           if (rule.price < 4000 || rule.maxPrice < 4000 || rule.price > rule.maxPrice) {
             priceError = true;
@@ -1916,6 +1950,7 @@
           _Vue.logList.push({
               text: `价格设置错误`,
             });
+          this.$message({ type: 'error', message: '价格必须大于4000且最高价格必须大于价格', duration: 5000 });
           this.fetchState = false;
           return;
         }
@@ -1989,7 +2024,6 @@
               const curData = dataList[i];
               for (let j = 0; j < curData.skcList.length; j++) {
                 const curSkc = curData.skcList[j];
-
                 _Vue.logList.push({
                   text: `正在处理SKC: ${curSkc.skcId}`,
                 });
@@ -2023,6 +2057,34 @@
                     });
                     continue;
                   }
+                  
+                  // 检查SKU是否满足核价申报类目要求
+                  let isMatch = false;
+                  for (let n = 0; n < curSkc.skuList.length; n++) {
+                    const curSku = curSkc.skuList[n];
+                    // 如果选择了"全部"选项，则不进行过滤
+                    if (configSetting.abandonCategories.includes('ALL')) {
+                      isMatch = true;
+                      break;
+                    }
+                    // 检查是否匹配任一选中的类目
+                    for (const category of configSetting.abandonCategories) {
+                      const pattern = new RegExp(`^${category}.*`);
+                      if (pattern.test(curSku.extCode)) {
+                        isMatch = true;
+                        break;
+                      }
+                    }
+                    if (isMatch) break;
+                  }
+                  if (!isMatch) {
+                    _Vue.logList.push({
+                      text: `跳过: SKU不满足核价申报类目要求`,
+                    });
+                    continue;
+                  }
+                  
+
                   priceOrderIds.push(curSupplier.priceOrderId);
                 }
               }
