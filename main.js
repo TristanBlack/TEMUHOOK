@@ -1402,7 +1402,7 @@
        */
       SMZQ_abandonPriceRuleAdd: function () {
         this.configSetting.abandonPriceRule.push({
-          price: 4000,
+          price: 3500,
           maxPrice: 4000,
         });
       },
@@ -1915,7 +1915,7 @@
         }
 
         for (const rule of configSetting.abandonPriceRule) {
-          if (rule.price < 4000 || rule.maxPrice < 4000 || rule.price > rule.maxPrice) {
+          if (rule.price < 3500 || rule.maxPrice < 3500 || rule.price > rule.maxPrice) {
             priceError = true;
             break;
           }
@@ -1924,7 +1924,7 @@
           _Vue.logList.push({
               text: `价格设置错误`,
             });
-          this.$message({ type: 'error', message: '价格必须大于4000且最高价格必须大于价格', duration: 5000 });
+          this.$message({ type: 'error', message: '价格必须大于3500且最高价格必须大于价格', duration: 5000 });
           this.fetchState = false;
           return;
         }
@@ -2362,7 +2362,7 @@
        */
       HDSB_activityPirceAdd: function () {
         this.configSetting.activityPriceRule.push({
-          price: 4000,
+          price: 3500,
           maxPirce: 4000,
         });
       },
