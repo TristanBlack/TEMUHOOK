@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         TEMUHOOK
 // @namespace    SAN
-// @version      2.9
+// @version      2.10
 // @description  TEMUHOOK 提交
 // @author       XIAOSAN
 // @match        *://seller.kuajingmaihuo.com/*
@@ -117,7 +117,7 @@
                                 <el-button type="info" @click="SMZQ_abandonPriceRuleAdd" :disabled="configSetting.abandonPriceRule.length > 0">添加金额规则</el-button>
                             </div>
                             <el-divider>核价申报类目</el-divider>
-                            <el-form-item label="选择类目" required>
+                             <el-form-item label="选择类目" required>
                                 <el-checkbox-group v-model="configSetting.abandonCategories" @change="handleAbandonCategoriesChange">
                                     <el-checkbox label="A">A：常规T恤</el-checkbox>
                                     <el-checkbox label="B">B：大码T恤</el-checkbox>
@@ -131,39 +131,46 @@
                     </el-tab-pane>
                     <el-tab-pane label="活动申报" name="HDSB">
                         <el-form :model="configSetting" label-width="auto">
-                            <el-table :data="configSetting.activityPriceRule" style="width: 100%">
-                                <el-table-column label="价格(分)">
+                            <el-divider>价格类目关联规则</el-divider>
+                            <el-alert v-if="configSetting.activityPriceCategoryRules.length === 0" 
+                                title="警告：必须配置价格类目规则才能进行活动申报！请添加至少一条价格类目关联规则。" 
+                                type="warning" 
+                                show-icon 
+                                :closable="false" 
+                                style="margin-bottom: 10px;">
+                            </el-alert>
+                            <el-table :data="configSetting.activityPriceCategoryRules" style="width: 100%">
+                                <el-table-column label="最低价格(分)" width="150">
                                     <template #default="scope">
                                         <el-input-number v-model="scope.row.price" :min="3500" :precision="0" :disabled="fetchState" controls-position="right" />
                                     </template>
                                 </el-table-column>
-                                <el-table-column label="最高价格(分)">
+                                <el-table-column label="最高价格(分)" width="150">
                                     <template #default="scope">
-                                        <el-input-number v-model="scope.row.maxPirce" :min="3500" :precision="0" :disabled="fetchState" controls-position="right" />
+                                        <el-input-number v-model="scope.row.maxPrice" :min="3500" :precision="0" :disabled="fetchState" controls-position="right" />
                                     </template>
                                 </el-table-column>
-                                <el-table-column label="" width="100">
+                                <el-table-column label="关联类目">
                                     <template #default="scope">
-                                        <el-button size="small" type="danger" @click="HDSB_activityPirceDelete(scope.$index, scope.row)" :disabled="fetchState">
-                                        Delete
+                                        <el-radio-group v-model="scope.row.category">
+                                            <el-radio label="A">A：常规T恤</el-radio>
+                                            <el-radio label="B">B：大码T恤</el-radio>
+                                            <el-radio label="C">C：常规卫衣</el-radio>
+                                            <el-radio label="D">D：大码卫衣</el-radio>
+                                        </el-radio-group>
+                                    </template>
+                                </el-table-column>
+                                <el-table-column label="操作" width="100">
+                                    <template #default="scope">
+                                        <el-button size="small" type="danger" @click="HDSB_priceCategoryRuleDelete(scope.$index, scope.row)" :disabled="fetchState">
+                                        删除
                                         </el-button>
                                     </template>
                                 </el-table-column>
                             </el-table>
                             <div style="margin-top: 30px;">
-                                <el-button type="info" @click="HDSB_activityPirceAdd" :disabled="configSetting.activityPriceRule.length > 0">添加金额规则</el-button>
+                                <el-button type="info" @click="HDSB_priceCategoryRuleAdd" :disabled="fetchState">添加价格类目规则</el-button>
                             </div>
-                        <el-divider>活动申报类目</el-divider>
-                            <el-form-item label="选择类目" required>
-                                <el-checkbox-group v-model="configSetting.activityCategories">
-                                    <el-checkbox label="A">A：常规T恤</el-checkbox>
-                                    <el-checkbox label="B">B：大码T恤</el-checkbox>
-                                    <el-checkbox label="C">C：常规卫衣</el-checkbox>
-                                    <el-checkbox label="D">D：大码卫衣</el-checkbox>
-                                    
-                                    <el-checkbox label="ALL">全部</el-checkbox>
-                                </el-checkbox-group>
-                            </el-form-item>
                         <el-divider>过滤字符</el-divider>
                             <el-table :data="configSetting.activityFilerStrRule" style="width: 100%">
                                 <el-table-column label="SKU属性集">
@@ -1002,6 +1009,7 @@
             activityTargetActivityStock: [],
             activityCategory: "",
             abandonCategories: [],
+            activityPriceCategoryRules: [],
             token: null,
             checkedSites: null,
           },
@@ -1556,8 +1564,8 @@
        */
       HDSB_match_procution_data: function (data) {
         const configSetting = this.configSetting;
-        const price = configSetting.activityPriceRule[0].price;
-        const maxPirce = configSetting.activityPriceRule[0].maxPirce;
+        // 使用新的价格类目关联规则
+        const priceCategoryRules = configSetting.activityPriceCategoryRules || [];
         const filerSkustr = configSetting.activityFilerStrRule;
         const targetActivityStock = configSetting.activityTargetActivityStock;
         const siteId = configSetting.checkedSites;
@@ -1568,102 +1576,43 @@
         _Vue.logList = [];
         let matchList = data;
         let productList = [];
-
-        // 根据活动申报类目过滤SKU
-        const activityCategories = configSetting.activityCategories || [];
-        if (activityCategories.length > 0) {
-          // 如果选择了"全部"选项，则不进行过滤
-          if (activityCategories.includes('ALL')) {
-            _Vue.logList.push({
-              text: `已选择全部类目，不进行SKU过滤`,
-            });
-
-          } else {
-            const categoryLabels = activityCategories.map(cat => {
-              switch(cat) {
-                case 'A': return 'A：常规T恤';
-                case 'B': return 'B：大码T恤';
-                case 'C': return 'C：常规卫衣';
-                case 'D': return 'D：大码卫衣';
-                default: return cat;
-              }
-            }).join('、');
-            
-            _Vue.logList.push({
-              text: `根据活动申报类目 ${categoryLabels} 过滤SKU...`,
-            });
-
-            let filteredList = [];
-            let skippedCount = 0;
-
-            for (let item of matchList) {
-              // 检查是否有符合条件的SKU
-
-              // const hasValidSku = item.activitySiteInfoList.some((site) =>
-              //   site.skcList.some((skc) =>
-              //     skc.skuList.some((sku) => {
-              //       // 输出SKU的属性和值
-              //       _Vue.logList.push({
-              //         text: `sku.extCode: ${sku.extCode}`,
-              //       });
-
-              //       // 检查extCode前缀是否符合选择的活动申报类目
-              //       if (activityCategory === 'ALL') {
-              //         return true;
-              //       }
-              //       // 使用正则表达式精确匹配前缀，确保A不会匹配到AW
-              //       const pattern = new RegExp(`^${activityCategory}[-_]?\d+`);
-              //       return sku.extCode && pattern.test(sku.extCode);
-              //     })
-              //   )
-              // );
-              // _Vue.logList.push({
-              //         text: `hasValidSku: ${hasValidSku}`,
-              //       });
-
-              // 保留符合条件的商品，但过滤掉不符合条件的SKU
-              const filteredItem = JSON.parse(JSON.stringify(item));
-
-              filteredItem.activitySiteInfoList = filteredItem.activitySiteInfoList.map(site => {
-                site.skcList = site.skcList.map(skc => {
-                  skc.skuList = skc.skuList.filter(sku => {
-                    if (activityCategories.includes('ALL')) {
-                      return true;
-                    }
-
-                    // 检查是否匹配任一选中的类目
-                    const isValid = activityCategories.some(category => {
-                      const pattern = new RegExp(`^${category}.*`);
-                      return pattern.test(sku.extCode);
-                    });
-                    
-                    if (!isValid) {
-                      _Vue.logList.push({
-                        text: `排除：SKU ${sku.skuId}的extCode${sku.extCode}不符合选中的类目规则`,
-                      });
-                    }
-                    return isValid;
-                  });
-                  return skc;
-                }).filter(skc => skc.skuList.length > 0);
-                return site;
-              }).filter(site => site.skcList.length > 0);
-
-              if (filteredItem.activitySiteInfoList.length > 0) {
-                filteredList.push(filteredItem);
-              } else {
-                skippedCount++;
-              }
-
-            }
-
-            _Vue.logList.push({
-              text: `统计：共${matchList.length} 条数据, 通过extCode前缀过滤了 ${skippedCount} 条数据`,
-            });
-
-            matchList = filteredList;
-          }
+        
+        // 检查价格类目规则配置，未配置时报错中止
+        if (priceCategoryRules.length === 0) {
+          _Vue.logList.push({
+            text: `错误：未配置价格类目规则，无法进行活动申报！请先在设置中添加价格类目关联规则。`,
+          });
+          _Vue.fetchState = false;
+          ElMessage.error('未配置价格类目规则，无法进行活动申报！请先添加价格类目关联规则。');
+          return;
         }
+        
+        _Vue.logList.push({
+          text: `使用价格类目关联规则，共${priceCategoryRules.length}条规则`,
+        });
+        
+        // 辅助函数：根据SKU的extCode获取对应的价格规则
+        const getPriceRuleForSku = (extCode) => {
+          // 此时已确保priceCategoryRules不为空
+          
+          for (let rule of priceCategoryRules) {
+            if (rule.category) {
+              const pattern = new RegExp(`^${rule.category}.*`);
+              const matches = pattern.test(extCode);
+              if (matches) {
+                _Vue.logList.push({
+                  text: `价格规则匹配成功：extCode '${extCode}' 使用价格规则 ${rule.price}-${rule.maxPrice}分`,
+                });
+                return { price: rule.price, maxPrice: rule.maxPrice };
+              }
+            }
+          }
+          // 如果没有匹配的规则，返回null，表示该商品不参与活动
+          _Vue.logList.push({
+            text: `价格规则匹配失败：extCode '${extCode}' 未找到匹配规则，该商品将被排除`,
+          });
+          return null;
+        };
 
         if (filerSkustr.length) {
           _Vue.logList.push({
@@ -1729,15 +1678,33 @@
                 siteId: val.siteId,
                 skcList: val.skcList
                   .filter((v) => {
-                    return v.suggestActivityPrice >= price
+                    // 根据SKU的extCode获取对应的价格规则
+                    if (v.skuList && v.skuList.length > 0) {
+                      const firstSku = v.skuList[0];
+                      const priceRule = getPriceRuleForSku(firstSku.extCode || '');
+                      // 如果没有匹配的价格规则，排除该商品
+                      if (priceRule === null) {
+                        return false;
+                      }
+                      return v.suggestActivityPrice >= priceRule.price;
+                    }
+                    return false;
                   })
                   .map((v) => {
+                    // 根据SKU的extCode获取对应的价格规则
+                    let priceRule = { price: 0, maxPrice: 999999 };
+                    if (v.skuList && v.skuList.length > 0) {
+                      const firstSku = v.skuList[0];
+                      priceRule = getPriceRuleForSku(firstSku.extCode || '');
+                      // 此时priceRule不会为null，因为已在filter中过滤掉了
+                    }
+                    
                     let activityPrice =
-                      v.suggestActivityPrice > maxPirce
-                        ? maxPirce
+                      v.suggestActivityPrice > priceRule.maxPrice
+                        ? priceRule.maxPrice
                         : v.suggestActivityPrice;
                     _Vue.logList.push({
-                      text: `${value.productId}---价格 ${v.suggestActivityPrice}=>${activityPrice}`,
+                      text: `${value.productId}---extCode: ${v.skuList[0]?.extCode || 'N/A'}, 价格规则: ${priceRule.price}-${priceRule.maxPrice}, 建议价格: ${v.suggestActivityPrice}=>${activityPrice}`,
                     });
                     return {
                       skcId: v.skcId,
@@ -1854,16 +1821,23 @@
         let priceError = false;
 
         // 检查是否选择了活动申报类目
-        if (!configSetting.activityCategories || configSetting.activityCategories.length === 0) {
+        if (!configSetting.activityPriceCategoryRules || configSetting.activityPriceCategoryRules.length === 0) {
           this.$message({ type: 'error', message: '请至少选择一个活动申报类目', duration: 5000 });
           this.logList.push({ text: '错误: 请至少选择一个活动申报类目' });
           this.fetchState = false;
           return;
         }
 
-        for (const rule of configSetting.activityPriceRule) {
-          if (rule.price < 3000 || rule.maxPirce < 3000 || rule.price > rule.maxPirce) {
+        for (const rule of configSetting.activityPriceCategoryRules) {
+          // 根据关联类目设置最低价格限制
+          let minPrice = 3500; // A、B类目默认最低价格
+          if (rule.category === 'C' || rule.category === 'D') {
+            minPrice = 9900; // C、D类目最低价格
+          }
+          
+          if (rule.price < minPrice || rule.maxPrice < minPrice || rule.price > rule.maxPrice) {
             priceError = true;
+            this.logList.push({ text: `错误: 类目${rule.category}的价格不能低于${minPrice}分` });
             break;
           }
         }
@@ -2430,6 +2404,24 @@
        */
       HDSB_activityPirceDelete: function (index, data) {
         this.configSetting.activityPriceRule.splice(index, 1);
+      },
+
+      /**
+       * 活动申报-添加价格类目关联规则
+       */
+      HDSB_priceCategoryRuleAdd: function () {
+        this.configSetting.activityPriceCategoryRules.push({
+          price: 3500,
+          maxPrice: 5000,
+          category: ''
+        });
+      },
+
+      /**
+       * 活动申报-删除价格类目关联规则
+       */
+      HDSB_priceCategoryRuleDelete: function (index, data) {
+        this.configSetting.activityPriceCategoryRules.splice(index, 1);
       },
 
       /**
