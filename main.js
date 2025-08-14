@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         TEMUHOOK
 // @namespace    SAN
-// @version      2.11
+// @version      2.12
 // @description  TEMUHOOK 提交
 // @author       XIAOSAN
 // @match        *://seller.kuajingmaihuo.com/*
@@ -142,12 +142,12 @@
                             <el-table :data="configSetting.activityPriceCategoryRules" style="width: 100%">
                                 <el-table-column label="最低价格(分)" width="150">
                                     <template #default="scope">
-                                        <el-input-number v-model="scope.row.price" :min="3000" :precision="0" :disabled="fetchState" controls-position="right" />
+                                        <el-input-number v-model="scope.row.price" :min="2000" :precision="0" :disabled="fetchState" controls-position="right" />
                                     </template>
                                 </el-table-column>
                                 <el-table-column label="最高价格(分)" width="150">
                                     <template #default="scope">
-                                        <el-input-number v-model="scope.row.maxPrice" :min="3000" :precision="0" :disabled="fetchState" controls-position="right" />
+                                        <el-input-number v-model="scope.row.maxPrice" :min="2000" :precision="0" :disabled="fetchState" controls-position="right" />
                                     </template>
                                 </el-table-column>
                                 <el-table-column label="关联类目">
@@ -1402,7 +1402,7 @@
        */
       SMZQ_abandonPriceRuleAdd: function () {
         this.configSetting.abandonPriceRule.push({
-          price: 3000,
+          price: 2000,
           maxPrice: 4000,
         });
       },
@@ -1830,9 +1830,9 @@
 
         for (const rule of configSetting.activityPriceCategoryRules) {
           // 根据关联类目设置最低价格限制
-          let minPrice = 3000; // A、B类目默认最低价格
+          let minPrice = 2000; // A、B类目默认最低价格
           if (rule.category === 'C' || rule.category === 'D') {
-            minPrice = 9900; // C、D类目最低价格
+            minPrice = 8000; // C、D类目最低价格
           }
           
           if (rule.price < minPrice || rule.maxPrice < minPrice || rule.price > rule.maxPrice) {
@@ -1915,7 +1915,7 @@
         }
 
         for (const rule of configSetting.abandonPriceRule) {
-          if (rule.price < 3000 || rule.maxPrice < 3000 || rule.price > rule.maxPrice) {
+          if (rule.price < 2000 || rule.maxPrice < 2000 || rule.price > rule.maxPrice) {
             priceError = true;
             break;
           }
@@ -2362,7 +2362,7 @@
        */
       HDSB_activityPirceAdd: function () {
         this.configSetting.activityPriceRule.push({
-          price: 3000,
+          price: 2000,
           maxPirce: 4000,
         });
       },
@@ -2411,7 +2411,7 @@
        */
       HDSB_priceCategoryRuleAdd: function () {
         this.configSetting.activityPriceCategoryRules.push({
-          price: 3000,
+          price: 2000,
           maxPrice: 5000,
           category: ''
         });
