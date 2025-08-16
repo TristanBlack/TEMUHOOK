@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         TEMUHOOK
 // @namespace    SAN
-// @version      2.12
+// @version      2.13
 // @description  TEMUHOOK 提交
 // @author       XIAOSAN
 // @match        *://seller.kuajingmaihuo.com/*
@@ -123,6 +123,8 @@
                                     <el-checkbox label="B">B：大码T恤</el-checkbox>
                                     <el-checkbox label="C">C：常规卫衣</el-checkbox>
                                     <el-checkbox label="D">D：大码卫衣</el-checkbox>
+                                    <el-checkbox label="E">E：常规圆领卫衣</el-checkbox>
+                                    <el-checkbox label="F">F：大码圆领卫衣</el-checkbox>
                                     
                                     <el-checkbox label="ALL">全部</el-checkbox>
                                 </el-checkbox-group>
@@ -157,6 +159,8 @@
                                             <el-radio label="B">B：大码T恤</el-radio>
                                             <el-radio label="C">C：常规卫衣</el-radio>
                                             <el-radio label="D">D：大码卫衣</el-radio>
+                                            <el-radio label="E">E：常规圆领卫衣</el-radio>
+                                            <el-radio label="F">F：大码圆领卫衣</el-radio>
                                         </el-radio-group>
                                     </template>
                                 </el-table-column>
@@ -1157,7 +1161,7 @@
       handleAbandonCategoriesChange(value) {
         const allIndex = value.indexOf('ALL');
         if (allIndex > -1) {
-          this.configSetting.abandonCategories = ['A', 'B', 'C', 'D', 'ALL'];
+          this.configSetting.abandonCategories = ['A', 'B', 'C', 'D', 'E', 'F', 'ALL'];
         } else {
           this.configSetting.abandonCategories = value.filter(item => item !== 'ALL');
         }
@@ -1831,8 +1835,8 @@
         for (const rule of configSetting.activityPriceCategoryRules) {
           // 根据关联类目设置最低价格限制
           let minPrice = 2000; // A、B类目默认最低价格
-          if (rule.category === 'C' || rule.category === 'D') {
-            minPrice = 8000; // C、D类目最低价格
+          if (rule.category === 'C' || rule.category === 'D' || rule.category === 'E' || rule.category === 'F') {
+            minPrice = 8000; // C、D、E、F类目最低价格
           }
           
           if (rule.price < minPrice || rule.maxPrice < minPrice || rule.price > rule.maxPrice) {
