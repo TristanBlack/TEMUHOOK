@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         TEMUHOOK
 // @namespace    SAN
-// @version      2.13
+// @version      2.14
 // @description  TEMUHOOK 提交
 // @author       XIAOSAN
 // @match        *://seller.kuajingmaihuo.com/*
@@ -1832,24 +1832,49 @@
           return;
         }
 
+        let priceErrorMessages = []; // 收集所有价格错误信息
         for (const rule of configSetting.activityPriceCategoryRules) {
           // 根据关联类目设置最低价格限制
-          let minPrice = 2000; // A、B类目默认最低价格
-          if (rule.category === 'C' || rule.category === 'D' || rule.category === 'E' || rule.category === 'F') {
-            minPrice = 8000; // C、D、E、F类目最低价格
+          let minPrice = 3000; // A、B类目默认最低价格
+          if (rule.category === 'E' || rule.category === 'F') {
+            minPrice = 6000; // E、F类目最低价格
+          }if (rule.category === 'C' || rule.category === 'D') {
+            minPrice = 8000; // C、D类目最低价格
           }
           
           if (rule.price < minPrice || rule.maxPrice < minPrice || rule.price > rule.maxPrice) {
             priceError = true;
-            this.logList.push({ text: `错误: 类目${rule.category}的价格不能低于${minPrice}分` });
-            break;
+            const errorMsg = `类目${rule.category}: 当前价格${rule.price}分，最低要求${minPrice}分`;
+            priceErrorMessages.push(errorMsg);
+            this.logList.push({ text: `错误: ${errorMsg}` });
           }
         }
         if (priceError) {
-          this.$message({ type: 'error', message: '金额设置错误！', duration: 5000 });
-          this.logList.push({ text: '错误: 金额设置错误！' });
-          this.fetchState = false;
-          return;
+          // 价格过低时显示二次确认对话框，包含所有错误信息
+          const errorDetails = priceErrorMessages.join('\n');
+          const confirmMessage = `检测到以下价格设置低于建议最低价格：\n\n${errorDetails}\n\n是否确认继续执行？`;
+          const confirmed = await new Promise((resolve) => {
+            this.$confirm(confirmMessage, '价格过低提醒', {
+              confirmButtonText: '确认无误，继续执行',
+              cancelButtonText: '取消',
+              type: 'warning',
+              dangerouslyUseHTMLString: false
+            }).then(() => {
+              resolve(true);
+            }).catch(() => {
+              resolve(false);
+            });
+          });
+          
+          if (!confirmed) {
+            this.$message({ type: 'info', message: '已取消执行', duration: 3000 });
+            this.logList.push({ text: '用户取消执行' });
+            this.fetchState = false;
+            return;
+          } else {
+            this.$message({ type: 'warning', message: '用户确认继续执行，价格过低风险自负', duration: 5000 });
+            this.logList.push({ text: '警告: 用户确认继续执行，价格过低风险自负' });
+          }
         }
         do {
           let res = await this.HDSB_getMatch(pageToken);
